@@ -1,25 +1,49 @@
+<div align="center">
+
 # GitGuild
 
-GitGuild is a BlockTrain hackathon prototype for repository tokens and GitHub pull request outcome markets. The contracts and web app can be demonstrated locally with test ETH.
+**Explore repository tokens and pull-request outcome markets on a local chain.**
 
-The project has **two separate systems**:
+A BlockTrain hackathon prototype with separate ERC-20 repository tokens and owner-resolved YES/NO markets.
 
-- **ProjectCoinFactory / ProjectCoin:** Anyone can register one ERC-20 token for a repository name. A wallet can mint tokens for ETH and redeem against ETH remaining in the token contract.
-- **PredictionMarket:** The contract owner creates a YES/NO market for a repository and PR number. Wallets stake ETH, the owner reports the outcome, and eligible wallets claim a share of the pool.
+[![Archived](https://img.shields.io/badge/status-archived-9d75d1)](https://github.com/Muneer320/GitGuild) [![Solidity](https://img.shields.io/badge/Solidity-0.8.28-363636?logo=solidity)](blockchain/hardhat.config.ts) [![MIT](https://img.shields.io/badge/license-MIT-9d75d1)](LICENSE)
 
-A repository token is not a token for each PR. A PR merge does not automatically pay token holders. The contracts do not verify GitHub ownership or PR outcomes.
+[**Run the contract demo**](#try-it-with-local-test-eth) · [**Two systems**](#two-contract-ideas-one-hackathon) · [**Trust boundaries**](#who-controls-the-outcome)
 
-## Run the demo
+</div>
 
-Use Node.js 22 and npm. From the repository root:
+## Two contract ideas, one hackathon
 
-```bash
+GitGuild explored how on-chain mechanics might sit beside repository activity. One system registers and mints a token associated with a repository name. The other accepts YES/NO positions on a PR outcome and pays eligible claims after its owner resolves the market. They are separate mechanisms, with explicit trust in the contract owners.
+
+![Actual completed in-memory Hardhat demo with token mint and resolved YES market payout](docs/images/local-demo.svg)
+
+*Real script output from a disposable in-memory Hardhat network. Values are local test ETH; the example repository and PR are synthetic. No public deployment or real funds are involved.*
+
+| Repository tokens | PR outcome markets |
+| --- | --- |
+| Register an ERC-20 for a repository name, mint and redeem against remaining contract ETH | Stake YES/NO, wait for the owner-supplied outcome, then claim an eligible share |
+| `ProjectCoinFactory` / `ProjectCoin` | `PredictionMarket` |
+
+> [!IMPORTANT]
+> **Archived, unaudited prototype—use local test ETH.** The contracts do not verify GitHub ownership or PR outcomes. A repository token is not a token for each PR, and a PR merge does not automatically pay repository-token holders.
+
+## Try it with local test ETH
+
+Use Git and Node.js 22, matching the existing CI configuration:
+
+```sh
+git clone https://github.com/Muneer320/GitGuild.git
+cd GitGuild
 npm ci
 npm test
 npm run demo --workspace blockchain
 ```
 
-The demo deploys both contracts to an in-memory Hardhat chain, registers a repository token, mints it, runs a YES/NO market, resolves it, and checks the payout. It needs no wallet, API key, or real ETH.
+The script deploys both systems in memory, creates a repository token, mints it, opens/resolves a synthetic YES/NO market and checks the payout. It needs no wallet, API key or real ETH. Ending the command discards that in-memory chain.
+
+<details>
+<summary><strong>Run the Next.js interface with a local chain and disposable wallet</strong></summary>
 
 To use the web app, keep three terminals open in the repository root:
 
@@ -38,7 +62,22 @@ The local deployment writes the contract addresses to the ignored file `frontend
 
 See [SETUP.md](SETUP.md) for the short setup checklist and [USAGE.md](USAGE.md) for the demo flow.
 
-## What the contracts do
+</details>
+
+## From registration to an owner-resolved claim
+
+```mermaid
+flowchart LR
+    Name[Repository name] --> Factory[ProjectCoinFactory]
+    Factory --> Token[ProjectCoin mint and redemption]
+    PR[Synthetic repository and PR number] --> Market[PredictionMarket]
+    Market --> Stake[YES and NO positions]
+    Stake --> Owner[Owner supplies outcome]
+    Owner --> Claim[Eligible claim]
+```
+
+<details>
+<summary><strong>Fees, redemption, payout rules and incomplete token mechanisms</strong></summary>
 
 | Action | Contract behavior |
 | --- | --- |
@@ -52,20 +91,24 @@ See [SETUP.md](SETUP.md) for the short setup checklist and [USAGE.md](USAGE.md) 
 
 The `ProjectCoin.resolveMarket` function records an owner supplied PR outcome and multiplier, but does not distribute a payout. The `ProjectCoin.buybackBurn` function can only burn tokens already held by that contract; it does not buy tokens from users.
 
-## Trust and limits
+</details>
+
+## Who controls the outcome?
 
 This is a prototype. The contracts have **not been independently audited**. The factory owner can change its creation fee and default addresses. Each token owner can change treasury and reward pool addresses and can withdraw ETH held by the token contract, including ETH that could otherwise back redemptions. The market owner controls creation and resolution, and receives stake fees. A live Sepolia deployment has not been verified against this revision. Use local test ETH for the demo; do not use real funds.
 
-## Project layout
+These authority and liquidity limits are part of the implemented model. The prototype does not provide a trustless GitHub oracle, guaranteed token redemption or automated rewards for merged PRs.
 
-- `blockchain/contracts/`: Solidity contracts.
-- `blockchain/test/`: Hardhat tests for registration, minting, fee handling, owner permissions, market positions and claims.
-- `blockchain/scripts/demo.ts`: self-contained contract demo.
-- `blockchain/scripts/deploy.ts`: local deployment for the web app.
-- `frontend/src/`: Next.js 15 app with wagmi 2 and viem 2.
+## Source and history
 
-## Team and license
+| Area | Path |
+| --- | --- |
+| Contracts | [blockchain/contracts/](blockchain/contracts/) |
+| Contract tests | [blockchain/test/](blockchain/test/) |
+| Self-contained demo | [blockchain/scripts/demo.ts](blockchain/scripts/demo.ts) |
+| Web app and wallet integration | [frontend/src/](frontend/src/) |
+| Local setup / walkthrough | [SETUP.md](SETUP.md), [USAGE.md](USAGE.md) |
 
-GitGuild grew from the BlockSmiths team project at BlockTrain. The [original team repository](https://github.com/WhyAsh5114/blocksmiths) credits WhyAsh5114 and pradyut-das as contributors; this repository is maintained by Muneer Alam. Historical hackathon material described a third-place result, which is not used as a product performance claim here.
+The archive preserves the BlockSmiths team project from BlockTrain. The [original team repository](https://github.com/WhyAsh5114/blocksmiths) credits WhyAsh5114 and pradyut-das; this repository also preserves Muneer Alam's work and its existing team history. For an exploratory fork, run the contract tests/demo and frontend build, and document any changes to fees, owner powers or settlement assumptions.
 
-[MIT License](LICENSE) © 2025 Muneer Alam and contributors.
+[MIT license](LICENSE) © 2025 Muneer Alam and contributors.

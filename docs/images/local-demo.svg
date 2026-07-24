@@ -1,0 +1,86 @@
+<svg class="rich-terminal" viewBox="0 0 1360 245.2" xmlns="http://www.w3.org/2000/svg">
+    <!-- Generated with Rich https://www.textualize.io -->
+    <style>
+
+    @font-face {
+        font-family: "Fira Code";
+        src: local("FiraCode-Regular"),
+                url("https://cdnjs.cloudflare.com/ajax/libs/firacode/6.2.0/woff2/FiraCode-Regular.woff2") format("woff2"),
+                url("https://cdnjs.cloudflare.com/ajax/libs/firacode/6.2.0/woff/FiraCode-Regular.woff") format("woff");
+        font-style: normal;
+        font-weight: 400;
+    }
+    @font-face {
+        font-family: "Fira Code";
+        src: local("FiraCode-Bold"),
+                url("https://cdnjs.cloudflare.com/ajax/libs/firacode/6.2.0/woff2/FiraCode-Bold.woff2") format("woff2"),
+                url("https://cdnjs.cloudflare.com/ajax/libs/firacode/6.2.0/woff/FiraCode-Bold.woff") format("woff");
+        font-style: bold;
+        font-weight: 700;
+    }
+
+    .terminal-4275281809-matrix {
+        font-family: Fira Code, monospace;
+        font-size: 20px;
+        line-height: 24.4px;
+        font-variant-east-asian: full-width;
+    }
+
+    .terminal-4275281809-title {
+        font-size: 18px;
+        font-weight: bold;
+        font-family: arial;
+    }
+
+    .terminal-4275281809-r1 { fill: #c5c8c6 }
+    </style>
+
+    <defs>
+    <clipPath id="terminal-4275281809-clip-terminal">
+      <rect x="0" y="0" width="1341.0" height="194.2" />
+    </clipPath>
+    <clipPath id="terminal-4275281809-line-0">
+    <rect x="0" y="1.5" width="1342" height="24.65"/>
+            </clipPath>
+<clipPath id="terminal-4275281809-line-1">
+    <rect x="0" y="25.9" width="1342" height="24.65"/>
+            </clipPath>
+<clipPath id="terminal-4275281809-line-2">
+    <rect x="0" y="50.3" width="1342" height="24.65"/>
+            </clipPath>
+<clipPath id="terminal-4275281809-line-3">
+    <rect x="0" y="74.7" width="1342" height="24.65"/>
+            </clipPath>
+<clipPath id="terminal-4275281809-line-4">
+    <rect x="0" y="99.1" width="1342" height="24.65"/>
+            </clipPath>
+<clipPath id="terminal-4275281809-line-5">
+    <rect x="0" y="123.5" width="1342" height="24.65"/>
+            </clipPath>
+<clipPath id="terminal-4275281809-line-6">
+    <rect x="0" y="147.9" width="1342" height="24.65"/>
+            </clipPath>
+    </defs>
+
+    <rect fill="#292929" stroke="rgba(255,255,255,0.35)" stroke-width="1" x="1" y="1" width="1358" height="243.2" rx="8"/><text class="terminal-4275281809-title" fill="#c5c8c6" text-anchor="middle" x="679" y="27">GitGuild&#160;·&#160;in-memory&#160;Hardhat&#160;demo</text>
+            <g transform="translate(26,22)">
+            <circle cx="0" cy="0" r="7" fill="#ff5f57"/>
+            <circle cx="22" cy="0" r="7" fill="#febc2e"/>
+            <circle cx="44" cy="0" r="7" fill="#28c840"/>
+            </g>
+        
+    <g transform="translate(9, 41)" clip-path="url(#terminal-4275281809-clip-terminal)">
+    
+    <g class="terminal-4275281809-matrix">
+    <text class="terminal-4275281809-r1" x="0" y="20" textLength="231.8" clip-path="url(#terminal-4275281809-line-0)">npm&#160;notice&#160;run&#160;demo</text><text class="terminal-4275281809-r1" x="1342" y="20" textLength="12.2" clip-path="url(#terminal-4275281809-line-0)">
+</text><text class="terminal-4275281809-r1" x="0" y="44.4" textLength="512.4" clip-path="url(#terminal-4275281809-line-1)">npm&#160;notice&#160;run&#160;hardhat&#160;run&#160;scripts/demo.ts</text><text class="terminal-4275281809-r1" x="1342" y="44.4" textLength="12.2" clip-path="url(#terminal-4275281809-line-1)">
+</text><text class="terminal-4275281809-r1" x="0" y="68.8" textLength="317.2" clip-path="url(#terminal-4275281809-line-2)">GitGuild&#160;local&#160;demo&#160;passed</text><text class="terminal-4275281809-r1" x="1342" y="68.8" textLength="12.2" clip-path="url(#terminal-4275281809-line-2)">
+</text><text class="terminal-4275281809-r1" x="0" y="93.2" textLength="732" clip-path="url(#terminal-4275281809-line-3)">Repository&#160;token:&#160;0xa16E02E87b7454126E5E10d957A927A7F5B5d2be</text><text class="terminal-4275281809-r1" x="1342" y="93.2" textLength="12.2" clip-path="url(#terminal-4275281809-line-3)">
+</text><text class="terminal-4275281809-r1" x="0" y="117.6" textLength="366" clip-path="url(#terminal-4275281809-line-4)">Minted:&#160;1000&#160;EXR&#160;for&#160;0.001&#160;ETH</text><text class="terminal-4275281809-r1" x="1342" y="117.6" textLength="12.2" clip-path="url(#terminal-4275281809-line-4)">
+</text><text class="terminal-4275281809-r1" x="0" y="142" textLength="573.4" clip-path="url(#terminal-4275281809-line-5)">Prediction&#160;market:&#160;example/repo&#160;PR&#160;#42,&#160;YES&#160;won</text><text class="terminal-4275281809-r1" x="1342" y="142" textLength="12.2" clip-path="url(#terminal-4275281809-line-5)">
+</text><text class="terminal-4275281809-r1" x="0" y="166.4" textLength="561.2" clip-path="url(#terminal-4275281809-line-6)">YES&#160;payout:&#160;1.9&#160;ETH&#160;after&#160;5%&#160;fee&#160;on&#160;each&#160;stake</text><text class="terminal-4275281809-r1" x="1342" y="166.4" textLength="12.2" clip-path="url(#terminal-4275281809-line-6)">
+</text><text class="terminal-4275281809-r1" x="1342" y="190.8" textLength="12.2" clip-path="url(#terminal-4275281809-line-7)">
+</text>
+    </g>
+    </g>
+</svg>
