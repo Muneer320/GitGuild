@@ -1,13 +1,11 @@
-# Sample Hardhat Project
+# GitGuild contracts
 
-This project demonstrates a basic Hardhat use case. It comes with a sample contract, a test for that contract, and a Hardhat Ignition module that deploys that contract.
+The Solidity contracts are `ProjectCoinFactory`, `ProjectCoin`, and `PredictionMarket`. From the repository root:
 
-Try running some of the following tasks:
-
-```shell
-npx hardhat help
-npx hardhat test
-REPORT_GAS=true npx hardhat test
-npx hardhat node
-npx hardhat ignition deploy ./ignition/modules/Lock.ts
+```bash
+npm ci
+npm test
+npm run demo --workspace blockchain
 ```
+
+For a persistent local chain, run `npm run node --workspace blockchain` in one terminal and `npm run deploy:local --workspace blockchain` in another. The deployment writes ignored frontend contract addresses. See the root [README](../README.md) for behavior and trust limits.

@@ -19,6 +19,7 @@ describe("ProjectCoin", function () {
       treasury.account.address,
       rewardPool.account.address,
       owner.account.address,
+      owner.account.address,
     ]);
 
     const publicClient = await hre.viem.getPublicClient();
@@ -124,6 +125,15 @@ describe("ProjectCoin", function () {
       expect(newPrice).to.equal(initialPrice + priceIncrement);
     });
 
+    it("Advances the price for a partial mint batch", async function () {
+      const { projectCoin, user1 } = await loadFixture(deployProjectCoinFixture);
+      const before = await projectCoin.read.mintPrice();
+      const amount = parseEther("1");
+      const cost = await projectCoin.read.calculateMintCost([amount]);
+      await projectCoin.write.mintTokens([amount], { account: user1.account, value: cost });
+      expect(await projectCoin.read.mintPrice()).to.equal(before + await projectCoin.read.mintPriceIncrement());
+    });
+
     it("Should distribute fees correctly", async function () {
       const { projectCoin, user1, treasury, rewardPool, publicClient } = await loadFixture(deployProjectCoinFixture);
 
@@ -152,10 +162,26 @@ describe("ProjectCoin", function () {
       });
 
       const expectedTreasuryFee = (mintCost * 30n) / 100n; // 30%
-      const expectedRewardPoolFee = (mintCost * 50n) / 100n; // 50%
+      const expectedRewardPoolFee = (mintCost * 40n) / 100n; // 40%
 
       expect(treasuryBalanceAfter - treasuryBalanceBefore).to.equal(expectedTreasuryFee);
       expect(rewardPoolBalanceAfter - rewardPoolBalanceBefore).to.equal(expectedRewardPoolFee);
+    });
+
+    it("Refunds an overpayment without distributing the excess", async function () {
+      const { projectCoin, user1, treasury, rewardPool, publicClient } = await loadFixture(deployProjectCoinFixture);
+      const amount = parseEther("1000");
+      const cost = await projectCoin.read.calculateMintCost([amount]);
+      const treasuryBefore = await publicClient.getBalance({ address: treasury.account.address });
+      const rewardBefore = await publicClient.getBalance({ address: rewardPool.account.address });
+      const hash = await projectCoin.write.mintTokens([amount], {
+        account: user1.account,
+        value: cost + parseEther("1"),
+      });
+      await publicClient.waitForTransactionReceipt({ hash });
+      expect((await publicClient.getBalance({ address: treasury.account.address })) - treasuryBefore).to.equal(cost * 30n / 100n);
+      expect((await publicClient.getBalance({ address: rewardPool.account.address })) - rewardBefore).to.equal(cost * 40n / 100n);
+      expect(await publicClient.getBalance({ address: projectCoin.address })).to.equal(cost * 20n / 100n);
     });
   });
 

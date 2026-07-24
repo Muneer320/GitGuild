@@ -3,6 +3,9 @@
   "scripts": {
     "compile": "hardhat compile",
     "test": "hardhat test",
+    "demo": "hardhat run scripts/demo.ts",
+    "node": "hardhat node",
+    "deploy:local": "hardhat run scripts/deploy.ts --network localhost",
     "deploy:projectcoin": "hardhat ignition deploy ignition/modules/ProjectCoin.ts",
     "deploy:factory": "hardhat ignition deploy ignition/modules/ProjectCoinFactory.ts",
     "clean": "hardhat clean"

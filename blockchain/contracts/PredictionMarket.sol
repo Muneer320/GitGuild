@@ -188,6 +188,18 @@ contract PredictionMarket is Ownable, ReentrancyGuard {
                 wasYesPosition = false;
             }
         }
+
+        // If nobody backed the winning outcome, return each losing stake after
+        // the platform fee instead of leaving the entire pool locked forever.
+        if (userWinnings == 0 &&
+            ((market.outcome && market.totalYesTokens == 0) ||
+             (!market.outcome && market.totalNoTokens == 0))) {
+            uint256 userTokens = market.outcome
+                ? userNoPositions[marketId][msg.sender]
+                : userYesPositions[marketId][msg.sender];
+            userWinnings = userTokens / TOKENS_PER_ETH;
+            wasYesPosition = !market.outcome;
+        }
         
         require(userWinnings > 0, "No winnings to claim");
         

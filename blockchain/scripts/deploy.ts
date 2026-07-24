@@ -1,36 +1,32 @@
-import { parseEther, formatEther } from "viem";
 import hre from "hardhat";
+import { writeFileSync } from "node:fs";
+import { resolve } from "node:path";
 
 async function main() {
-  console.log("🚀 Starting deployment to", hre.network.name);
-  
-  // Get the deployer account
   const [deployer] = await hre.viem.getWalletClients();
-  
-  // Deploy ProjectCoinFactory
-  console.log("\n📦 Deploying ProjectCoinFactory...");
-  
-  const projectCoinFactory = await hre.viem.deployContract("ProjectCoinFactory", [
-    deployer.account.address, // Default treasury (deployer)
-    deployer.account.address, // Default reward pool (deployer)
-    deployer.account.address  // Initial owner (deployer)
+  const factory = await hre.viem.deployContract("ProjectCoinFactory", [
+    deployer.account.address,
+    deployer.account.address,
+    deployer.account.address,
   ]);
-  
-  console.log("✅ ProjectCoinFactory deployed to:", projectCoinFactory.address);
-  
-  console.log("\n🎉 Deployment Complete!");
-  console.log("================================");
+  const market = await hre.viem.deployContract("PredictionMarket", [deployer.account.address]);
+
   console.log("Network:", hre.network.name);
-  console.log("ProjectCoinFactory:", projectCoinFactory.address);
-  console.log("\n📋 Next steps:");
-  console.log("1. Copy the address above");
-  console.log("2. Update FACTORY_ADDRESS in frontend/src/hooks/web3/useProjectCoin.ts");
-  console.log("3. Test the frontend with a real deployed contract!");
+  console.log("Factory:", factory.address);
+  console.log("PredictionMarket:", market.address);
+  console.log("Owner:", deployer.account.address);
+
+  if (hre.network.name === "localhost") {
+    const envPath = resolve(__dirname, "../../frontend/.env.local");
+    writeFileSync(envPath,
+      "NEXT_PUBLIC_FACTORY_ADDRESS=" + factory.address + "\n" +
+      "NEXT_PUBLIC_PREDICTION_MARKET_ADDRESS=" + market.address + "\n",
+      { encoding: "utf8", mode: 0o600 });
+    console.log("Wrote", envPath);
+  }
 }
 
-main()
-  .then(() => process.exit(0))
-  .catch((error) => {
-    console.error("❌ Deployment failed:", error);
-    process.exit(1);
-  });
+main().catch((error) => {
+  console.error(error);
+  process.exitCode = 1;
+});

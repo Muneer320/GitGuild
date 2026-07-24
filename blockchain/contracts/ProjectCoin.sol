@@ -114,7 +114,7 @@ contract ProjectCoin is ERC20, Ownable, ReentrancyGuard {
         _updateMintPrice(_tokenAmount);
         
         // Distribute fees
-        _distributeFees(msg.value);
+        _distributeFees(requiredEth);
         
         // Refund excess ETH
         _refundExcess(msg.value, requiredEth);
@@ -134,7 +134,7 @@ contract ProjectCoin is ERC20, Ownable, ReentrancyGuard {
      * @dev Internal function to update mint price
      */
     function _updateMintPrice(uint256 _tokenAmount) internal {
-        uint256 mintBatches = _tokenAmount / tokensPerMint;
+        uint256 mintBatches = (_tokenAmount + tokensPerMint - 1) / tokensPerMint;
         if (mintBatches > 0) {
             mintPrice += mintPriceIncrement * mintBatches;
             emit PriceUpdated(mintPrice);

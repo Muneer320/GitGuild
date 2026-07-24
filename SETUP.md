@@ -1,125 +1,53 @@
-# Setup Instructions
+# Local setup
 
-This guide will help you remove mock data and set up real GitHub API and Web3 contract integration.
+## Prerequisites
 
-## 1. GitHub API Setup
+- Node.js 22 and npm
+- An injected Ethereum wallet for the browser flow, such as MetaMask
+- No GitHub token or live ETH
 
-The app fetches real pull request data from GitHub repositories. To avoid rate limits:
+## Contract demo
 
-### Step 1: Create a GitHub Personal Access Token
-
-1. Go to [GitHub Settings → Personal Access Tokens](https://github.com/settings/tokens)
-2. Click "Generate new token (classic)"
-3. Give it a descriptive name like "Crypto Starter App"
-4. Select the **public_repo** scope (allows access to public repository data)
-5. Click "Generate token"
-6. **Copy the token immediately** (you won't see it again)
-
-### Step 2: Configure Environment Variables
-
-1. In the `frontend` folder, open `.env.local`
-2. Add your GitHub token:
-
-   ```bash
-   NEXT_PUBLIC_GITHUB_TOKEN=your_github_token_here
-   ```
-
-3. Save the file
-
-## 2. Smart Contract Setup
-
-The app integrates with deployed smart contracts for creating and managing project tokens.
-
-### Option A: Deploy to Local Network (Recommended for Development)
-
-1. Start a local blockchain:
-
-   ```bash
-   cd blockchain
-   npx hardhat node
-   ```
-
-2. Deploy the contracts:
-
-   ```bash
-   npm run deploy -- --network localhost
-   ```
-
-3. Copy the deployed factory address and add it to `frontend/.env.local`:
-
-   ```bash
-   NEXT_PUBLIC_FACTORY_ADDRESS=0x...
-   ```
-
-### Option B: Use Existing Testnet Deployment
-
-If contracts are already deployed to a testnet, add the factory address to your environment:
+From the repository root:
 
 ```bash
-NEXT_PUBLIC_FACTORY_ADDRESS=0x...
+npm ci
+npm test
+npm run demo --workspace blockchain
 ```
 
-## 3. Start the Application
+The demo uses an in-memory Hardhat chain and exits after checking token minting and a market payout.
 
-1. Install dependencies:
+## Web app demo
 
-   ```bash
-   cd frontend
-   npm install
-   ```
+Keep these commands in separate terminals:
 
-2. Start the development server:
+```bash
+npm run node --workspace blockchain
+```
 
-   ```bash
-   npm run dev
-   ```
+```bash
+npm run deploy:local --workspace blockchain
+```
 
-## 4. Verify Setup
+```bash
+npm run dev
+```
 
-1. Visit `http://localhost:3000`
-2. Go to the Dashboard
-3. You should see real GitHub pull requests from popular repositories
-4. Search should work with actual GitHub repository data
-5. If contracts are deployed, you can create tokens for repositories
+The deploy step creates `frontend/.env.local` with the current factory and market addresses. This file is ignored by Git. Open http://localhost:3000 after starting the app.
 
-## Troubleshooting
+Add a network to your wallet with RPC URL `http://127.0.0.1:8545`, chain ID `31337`, and currency symbol `ETH`. Import one of the test accounts printed by `hardhat node`. These published development keys are only for local test ETH. Never send real funds to them.
 
-### GitHub API Rate Limit (403 Error)
+When the local node restarts, it loses deployed contracts. Run the deployment command again, then restart the frontend. If the wallet shows an old nonce, reset its activity for this local network.
 
-- Ensure you've added a valid GitHub token to `.env.local`
-- Check that your token has the `public_repo` scope
-- Restart the development server after adding the token
+The app does not need a GitHub personal access token. It uses contract records and manually entered repository/PR identifiers. No automatic GitHub outcome verification is provided.
 
-### Contract Not Deployed Error
+## Checks
 
-- Make sure you've deployed the contracts and added the factory address
-- Verify the contract address is correct
-- Check that your wallet is connected to the right network
+```bash
+npm test
+npm run demo --workspace blockchain
+npm run build --workspace frontend
+```
 
-### No Markets Loading
-
-- Check browser console for error messages
-- Verify your GitHub token is valid
-- Ensure you have an internet connection
-
-## Features Without Mock Data
-
-✅ **Real GitHub Data:**
-
-- Actual pull requests from popular repositories
-- Real repository search functionality
-- Authentic PR metadata (comments, labels, dates)
-- Realistic probability calculations based on PR characteristics
-
-✅ **Real Web3 Integration:**
-
-- Deployed smart contract interaction
-- Real token creation and management
-- Actual transaction handling
-- Live contract state reading
-
-✅ **Improved Error Handling:**
-
-- Clear error messages for API issues
-- Setup instructions for common problems
-- Better user guidance for configuration
+The frontend build performs TypeScript validation. A production or Sepolia release needs independent contract review, verified deployments, and explicit owner custody decisions.

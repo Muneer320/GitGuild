@@ -22,37 +22,32 @@ export interface ProjectInfo {
 }
 
 export function useProjectCoinFactory() {
-  // Check if factory address is configured
-  if (!FACTORY_ADDRESS) {
-    return {
-      allProjects: [],
-      isLoadingProjects: false,
-      isPending: false,
-      isConfirming: false,
-      isSuccess: false,
-      createProjectCoin: () => {},
-      searchProjectsByRepo: () => [],
-      hash: undefined,
-      contractError:
-        "Factory contract address not configured. Please check your environment variables.",
-      writeError: null,
-    };
-  }
+  const isConfigured = Boolean(FACTORY_ADDRESS);
+  const { data: projectCount, refetch: refetchCount } = useReadContract({
+    address: FACTORY_ADDRESS as `0x${string}`,
+    abi: projectCoinFactoryAbi,
+    functionName: "getTotalTokensCount",
+    query: { enabled: isConfigured },
+  });
+  const { data: creationFee } = useReadContract({
+    address: FACTORY_ADDRESS as `0x${string}`,
+    abi: projectCoinFactoryAbi,
+    functionName: "creationFee",
+    query: { enabled: isConfigured },
+  });
 
   // Read functions - only if we have a valid factory address
   const {
     data: allProjectsData,
     isLoading: isLoadingProjects,
     error: contractError,
+    refetch: refetchProjects,
   } = useReadContract({
     address: FACTORY_ADDRESS as `0x${string}`,
     abi: projectCoinFactoryAbi,
     functionName: "getAllProjects",
     args: [BigInt(0), BigInt(100)], // offset: 0, limit: 100
-    query: {
-      // Handle empty contract state gracefully
-      retry: false,
-    },
+    query: { enabled: isConfigured && Number(projectCount || 0) > 0, retry: false },
   });
 
   // Extract projects array from the returned tuple, handle empty state gracefully
@@ -109,6 +104,12 @@ export function useProjectCoinFactory() {
     hash,
   });
 
+  useEffect(() => {
+    if (isSuccess) {
+      refetchCount().then(() => refetchProjects());
+    }
+  }, [isSuccess, refetchCount, refetchProjects]);
+
   // Create a new project coin
   const createProjectCoin = async (
     repository: string,
@@ -117,7 +118,11 @@ export function useProjectCoinFactory() {
     treasury: string = "0x0000000000000000000000000000000000000000",
     rewardPool: string = "0x0000000000000000000000000000000000000000"
   ) => {
+    if (!isConfigured || creationFee === undefined) {
+      throw new Error("Factory address or creation fee is unavailable");
+    }
     const [owner, repo] = repository.split("/");
+    if (!owner || !repo) throw new Error("Repository must be owner/repo");
 
     writeContract({
       address: FACTORY_ADDRESS as `0x${string}`,
@@ -131,6 +136,7 @@ export function useProjectCoinFactory() {
         treasury as `0x${string}`,
         rewardPool as `0x${string}`,
       ],
+      value: creationFee,
     });
   };
 
@@ -162,7 +168,7 @@ export function useProjectCoinFactory() {
     hash,
 
     // Error handling - use friendly error messages
-    contractError: friendlyError,
+    contractError: !isConfigured ? "Factory contract address not configured." : friendlyError,
     writeError: writeError?.message,
   };
 }

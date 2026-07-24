@@ -14,7 +14,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { predictionMarketAbi } from "@/lib/wagmi-generated";
 
 // Get the deployed PredictionMarket contract address from environment
-const PREDICTION_MARKET_ADDRESS = (process.env.NEXT_PUBLIC_PREDICTION_MARKET_ADDRESS || "0xe7f1725e7734ce288f8367e1bb143e90bb3f0512") as Address;
+const PREDICTION_MARKET_ADDRESS = process.env.NEXT_PUBLIC_PREDICTION_MARKET_ADDRESS as Address;
 
 // Utility function to extract repository and PR number from description
 function extractRepoAndPR(description: string): { repository: string; prNumber: number } | null {
@@ -73,6 +73,7 @@ export default function PredictionMarket() {
   const [userPositions, setUserPositions] = useState<UserPosition[]>([]);
   const [selectedMarket, setSelectedMarket] = useState<string>("");
   const [betAmount, setBetAmount] = useState("");
+  const validBet = /^\d+(\.\d{1,18})?$/.test(betAmount) && Number(betAmount) > 0;
   const [betType, setBetType] = useState<"yes" | "no">("yes");
   const [newMarketDescription, setNewMarketDescription] = useState("");
 
@@ -83,74 +84,56 @@ export default function PredictionMarket() {
   const { writeContract: claimWinnings, data: claimWinningsHash } = useWriteContract();
 
   // Wait for transaction confirmations
-  const { isLoading: isCreateMarketLoading } = useWaitForTransactionReceipt({ hash: createMarketHash });
-  const { isLoading: isTakePositionLoading } = useWaitForTransactionReceipt({ hash: takePositionHash });
-  const { isLoading: isResolveMarketLoading } = useWaitForTransactionReceipt({ hash: resolveMarketHash });
-  const { isLoading: isClaimWinningsLoading } = useWaitForTransactionReceipt({ hash: claimWinningsHash });
+  const { isLoading: isCreateMarketLoading, isSuccess: created } = useWaitForTransactionReceipt({ hash: createMarketHash });
+  const { isLoading: isTakePositionLoading, isSuccess: positioned } = useWaitForTransactionReceipt({ hash: takePositionHash });
+  const { isLoading: isResolveMarketLoading, isSuccess: resolved } = useWaitForTransactionReceipt({ hash: resolveMarketHash });
+  const { isLoading: isClaimWinningsLoading, isSuccess: claimed } = useWaitForTransactionReceipt({ hash: claimWinningsHash });
+  const { data: marketOwner } = useReadContract({ address: PREDICTION_MARKET_ADDRESS, abi: predictionMarketAbi, functionName: "owner", query: { enabled: Boolean(PREDICTION_MARKET_ADDRESS) } });
+  const isOwner = address?.toLowerCase() === marketOwner?.toLowerCase();
 
   // Read contract data
-  const { data: allMarketsData } = useReadContract({
+  const { data: allMarketsData, refetch: refetchMarkets } = useReadContract({
     address: PREDICTION_MARKET_ADDRESS,
     abi: predictionMarketAbi,
     functionName: "getAllMarkets",
+    query: { enabled: Boolean(PREDICTION_MARKET_ADDRESS) },
   });
 
-  const { data: activeMarketsData } = useReadContract({
-    address: PREDICTION_MARKET_ADDRESS,
-    abi: predictionMarketAbi,
-    functionName: "getActiveMarkets",
-  });
+  useEffect(() => {
+    if (created || positioned || resolved || claimed) {
+      refetchMarkets();
+    }
+  }, [created, positioned, resolved, claimed, refetchMarkets]);
 
   // Load markets and user positions
   useEffect(() => {
-    if (!isConnected || !activeMarketsData) return;
+    if (!allMarketsData) return;
 
     const loadMarkets = async () => {
-      if (Array.isArray(activeMarketsData)) {
-        const marketPromises = activeMarketsData.map(async (marketId: string) => {
-          // We need to decode the marketId to get repository and PR number
-          // The market ID is generated as keccak256(abi.encodePacked(repository, prNumber))
-          // For now, we'll use a placeholder approach since we can't easily reverse the hash
-          // In a real implementation, you'd maintain a mapping or use events
-          
-          // Temporary approach: try to get market data for known repos/PRs
-          const knownMarkets = [
-            { repository: "WhyAsh5114/blocksmiths", prNumber: 1 },
-            { repository: "WhyAsh5114/blocksmiths", prNumber: 2 },
-            { repository: "vercel/next.js", prNumber: 123 },
-          ];
-          
-          for (const { repository, prNumber } of knownMarkets) {
-            try {
-              const marketData = await readContract(config, {
-                address: PREDICTION_MARKET_ADDRESS,
-                abi: predictionMarketAbi,
-                functionName: "getMarket",
-                args: [repository, BigInt(prNumber)],
-              });
-              
-              if (marketData && marketData[0]) { // isActive
-                return {
-                  id: marketId,
-                  repository,
-                  prNumber,
-                  description: `Will PR #${prNumber} in ${repository} be merged?`,
-                  yesPool: marketData[1] as bigint,
-                  noPool: marketData[2] as bigint,
-                  totalYesTokens: marketData[3] as bigint,
-                  totalNoTokens: marketData[4] as bigint,
-                  resolved: marketData[5] as boolean,
-                  outcome: marketData[6] as boolean,
-                  createdAt: Number(marketData[7]),
-                  resolvedAt: Number(marketData[8]),
-                };
-              }
-            } catch (error) {
-              // Market doesn't exist for this repo/PR combination
-              continue;
-            }
-          }
-          return null;
+      if (Array.isArray(allMarketsData)) {
+        const marketPromises = allMarketsData.map(async (marketId) => {
+          const data = await readContract(config, {
+            address: PREDICTION_MARKET_ADDRESS,
+            abi: predictionMarketAbi,
+            functionName: "markets",
+            args: [marketId],
+          });
+          const prNumber = Number(data[0]);
+          const repository = data[1];
+          return {
+            id: marketId,
+            repository,
+            prNumber,
+            description: `Will PR #${prNumber} in ${repository} be merged?`,
+            yesPool: data[3],
+            noPool: data[4],
+            totalYesTokens: data[5],
+            totalNoTokens: data[6],
+            resolved: data[7],
+            outcome: data[8],
+            resolvedAt: Number(data[9]),
+            createdAt: Number(data[10]),
+          };
         });
         
         const loadedMarkets = (await Promise.all(marketPromises)).filter(Boolean) as Market[];
@@ -187,7 +170,7 @@ export default function PredictionMarket() {
     };
 
     loadMarkets();
-  }, [isConnected, activeMarketsData, address, config]);
+  }, [allMarketsData, address, config, created, positioned, resolved, claimed]);
 
   const handleCreateMarket = () => {
     if (!newMarketDescription.trim()) return;
@@ -209,7 +192,7 @@ export default function PredictionMarket() {
   };
 
   const handleTakePosition = () => {
-    if (!selectedMarket || !betAmount) return;
+    if (!selectedMarket || !validBet) return;
 
     const market = markets.find(m => m.id === selectedMarket);
     if (!market) return;
@@ -261,26 +244,15 @@ export default function PredictionMarket() {
     });
   };
 
-  if (!isConnected) {
-    return (
-      <Card>
-        <CardHeader>
-          <CardTitle>Prediction Markets</CardTitle>
-          <CardDescription>Connect your wallet to participate in YES/NO prediction markets</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <Alert>
-            <AlertDescription>Please connect your wallet to access prediction markets.</AlertDescription>
-          </Alert>
-        </CardContent>
-      </Card>
-    );
+  if (!PREDICTION_MARKET_ADDRESS) {
+    return <Card><CardContent className="pt-6">Prediction market contract address is not configured.</CardContent></Card>;
   }
 
   return (
     <div className="space-y-6">
-      {/* Create New Market */}
-      <Card>
+      {!isConnected && <Alert><AlertDescription>Connect a wallet to place positions or claim payouts. Markets are visible without a wallet.</AlertDescription></Alert>}
+      {/* Only the deployed contract owner can create markets. */}
+      {isOwner && <Card>
         <CardHeader>
           <CardTitle>Create Prediction Market</CardTitle>
           <CardDescription>Create a new YES/NO prediction market for GitHub PR outcomes</CardDescription>
@@ -303,13 +275,13 @@ export default function PredictionMarket() {
             {isCreateMarketLoading ? "Creating..." : "Create Market"}
           </Button>
         </CardContent>
-      </Card>
+      </Card>}
 
       {/* Active Markets */}
       <Card>
         <CardHeader>
           <CardTitle>Active Prediction Markets</CardTitle>
-          <CardDescription>Winner takes all! NO voters gain all the money if PR gets closed.</CardDescription>
+          <CardDescription>Winning positions share both pools after a 5% fee on each stake. The contract owner reports the outcome.</CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
           {markets.map((market) => {
@@ -347,7 +319,7 @@ export default function PredictionMarket() {
                     </div>
                     {market.resolved && !userPosition.hasClaimed && (
                       <p className="text-xs text-muted-foreground mt-1">
-                        Click "Claim Winnings" below to collect your rewards
+                        Claim is available for winning positions, or as a refund when no one backed the winning outcome.
                       </p>
                     )}
                   </div>
@@ -363,7 +335,7 @@ export default function PredictionMarket() {
                       <div 
                         className="bg-emerald-600 dark:bg-emerald-400 h-2 rounded"
                         style={{
-                          width: `${Number(market.yesPool) / (Number(market.yesPool) + Number(market.noPool)) * 100}%`
+                          width: `${Number(market.yesPool + market.noPool) ? Number(market.yesPool) / Number(market.yesPool + market.noPool) * 100 : 0}%`
                         }}
                       />
                     </div>
@@ -378,7 +350,7 @@ export default function PredictionMarket() {
                       <div 
                         className="bg-rose-600 dark:bg-rose-400 h-2 rounded"
                         style={{
-                          width: `${Number(market.noPool) / (Number(market.yesPool) + Number(market.noPool)) * 100}%`
+                          width: `${Number(market.yesPool + market.noPool) ? Number(market.noPool) / Number(market.yesPool + market.noPool) * 100 : 0}%`
                         }}
                       />
                     </div>
@@ -428,27 +400,27 @@ export default function PredictionMarket() {
                       <div className="flex space-x-2">
                         <Button
                           onClick={handleTakePosition}
-                          disabled={!betAmount || selectedMarket !== market.id || isTakePositionLoading}
+                          disabled={!isConnected || !validBet || selectedMarket !== market.id || isTakePositionLoading}
                           className="flex-1"
                         >
                           {isTakePositionLoading ? "Betting..." : `Bet ${betType.toUpperCase()}`}
                         </Button>
-                        <Button
+                        {isOwner && <Button
                           variant="outline"
                           onClick={() => handleResolveMarket(market.id, true)}
                           disabled={isResolveMarketLoading}
                           size="sm"
                         >
                           Resolve YES
-                        </Button>
-                        <Button
+                        </Button>}
+                        {isOwner && <Button
                           variant="outline"
                           onClick={() => handleResolveMarket(market.id, false)}
                           disabled={isResolveMarketLoading}
                           size="sm"
                         >
                           Resolve NO
-                        </Button>
+                        </Button>}
                       </div>
                     </div>
                   </>
@@ -459,13 +431,17 @@ export default function PredictionMarket() {
                     <div className="flex items-center justify-between">
                       <span className="font-medium">Outcome:</span>
                       <Badge variant={market.outcome ? "default" : "destructive"}>
-                        {market.outcome ? "YES - PR Merged" : "NO - PR Closed"}
+                        {market.outcome ? "YES - owner reported merged" : "NO - owner reported closed"}
                       </Badge>
                     </div>
                     <div className="text-xs text-muted-foreground">
                       Resolved: {new Date(market.resolvedAt * 1000).toLocaleDateString()}
                     </div>
-                    {userPosition && !userPosition.hasClaimed && (
+                    {userPosition && !userPosition.hasClaimed &&
+                      ((market.outcome && userPosition.yesTokens > 0n) ||
+                       (!market.outcome && userPosition.noTokens > 0n) ||
+                       (market.outcome && market.totalYesTokens === 0n && userPosition.noTokens > 0n) ||
+                       (!market.outcome && market.totalNoTokens === 0n && userPosition.yesTokens > 0n)) && (
                       <Button
                         onClick={() => handleClaimWinnings(market.id)}
                         disabled={isClaimWinningsLoading}

@@ -1,138 +1,71 @@
 # GitGuild
 
-**Decentralized prediction markets for GitHub pull requests. Built on a moving train — 3rd place @ BlockTrain hackathon.**
+GitGuild is a BlockTrain hackathon prototype for repository tokens and GitHub pull request outcome markets. The contracts and web app can be demonstrated locally with test ETH.
 
-<p align="center">
-  <img src="https://img.shields.io/badge/Solidity-0.8.28-363636?style=for-the-badge&logo=solidity" alt="Solidity">
-  <img src="https://img.shields.io/badge/Next.js-14-000000?style=for-the-badge&logo=next.js" alt="Next.js">
-  <img src="https://img.shields.io/badge/Hardhat-FFCB1E?style=for-the-badge&logo=ethereum" alt="Hardhat">
-  <img src="https://img.shields.io/badge/license-MIT-blue?style=for-the-badge" alt="MIT">
-  <img src="https://img.shields.io/badge/3rd%20Place-BlockTrain-FF6B35?style=for-the-badge" alt="3rd Place">
-</p>
+The project has **two separate systems**:
 
----
+- **ProjectCoinFactory / ProjectCoin:** Anyone can register one ERC-20 token for a repository name. A wallet can mint tokens for ETH and redeem against ETH remaining in the token contract.
+- **PredictionMarket:** The contract owner creates a YES/NO market for a repository and PR number. Wallets stake ETH, the owner reports the outcome, and eligible wallets claim a share of the pool.
 
-## What It Does
+A repository token is not a token for each PR. A PR merge does not automatically pay token holders. The contracts do not verify GitHub ownership or PR outcomes.
 
-GitGuild lets anyone create and trade prediction markets for GitHub pull requests. Each PR gets its own token with bonding curve pricing — early traders get better prices, and when a PR merges, token holders get paid.
+## Run the demo
 
-Open source development lacks market signals. Maintainers can't tell which PRs the community actually wants merged. Contributors can't tell if their work will be accepted. GitGuild bridges that gap with economic incentives.
-
----
-
-## How It Works
-
-```mermaid
-flowchart LR
-    A[GitHub Repo] -->|Factory Contract| B[ProjectCoin Token]
-    B -->|Bonding Curve| C[Traders Buy/Sell]
-    C -->|PR Merged| D[Reward Pool → Holders]
-    C -->|PR Rejected| E[Buyback & Burn]
-    D --> F[Market Resolution]
-    E --> F
-```
-
-### Bonding Curve Economics
-
-| Action | Price | Outcome |
-|--------|-------|---------|
-| Early buyer | 0.001 ETH per 1000 tokens | Lower entry, higher upside |
-| Later buyer | 0.002 ETH per 1000 tokens | Higher entry reflects demand |
-| PR merges | — | Reward pool distributed to holders |
-| PR rejected | — | Buyback and burn — deflationary pressure |
-
-### Fee Distribution
-
-| Allocation | Share | Purpose |
-|------------|-------|---------|
-| Reward Pool | 50% | Paid out when PRs resolve |
-| Treasury | 30% | Platform development |
-| Buyback Fund | 20% | Token burns to manage supply |
-
----
-
-## Architecture
-
-```
-GitGuild/
-├── blockchain/              # Smart contracts (Solidity + Hardhat)
-│   ├── contracts/
-│   │   ├── ProjectCoinFactory.sol    # Creates PR-specific tokens
-│   │   └── ProjectCoin.sol           # ERC20 with bonding curve
-│   ├── test/                # Contract tests
-│   └── scripts/             # Sepolia deployment
-│
-├── frontend/                # Next.js 14 + TypeScript
-│   ├── src/
-│   │   ├── app/             # Pages (market discovery, trading, portfolio)
-│   │   ├── components/      # Wallet connect, token cards, charts
-│   │   ├── hooks/           # Wagmi + GitHub API hooks
-│   │   └── lib/             # Web3 utils, contract ABIs
-│   └── package.json
-│
-└── docs/                    # SETUP.md, USAGE.md, DEPLOYMENT-CHECKLIST.md
-```
-
----
-
-## Tech Stack
-
-| Layer | Technology |
-|-------|-----------|
-| **Smart Contracts** | Solidity 0.8.28, OpenZeppelin, Hardhat |
-| **Frontend** | Next.js 14, TypeScript, Wagmi, Viem, Tailwind CSS |
-| **Blockchain** | Sepolia testnet, MetaMask |
-| **Data** | GitHub REST API, React Query |
-
----
-
-## Quick Start
+Use Node.js 22 and npm. From the repository root:
 
 ```bash
-git clone https://github.com/Muneer320/GitGuild.git
-cd GitGuild
+npm ci
+npm test
+npm run demo --workspace blockchain
+```
 
-# Smart contracts
-cd blockchain && npm install
-npx hardhat test
+The demo deploys both contracts to an in-memory Hardhat chain, registers a repository token, mints it, runs a YES/NO market, resolves it, and checks the payout. It needs no wallet, API key, or real ETH.
 
-# Frontend
-cd ../frontend && npm install
+To use the web app, keep three terminals open in the repository root:
+
+```bash
+# Terminal 1: local blockchain
+npm run node --workspace blockchain
+
+# Terminal 2: deploy both contracts to that blockchain
+npm run deploy:local --workspace blockchain
+
+# Terminal 3: start the web app
 npm run dev
 ```
 
-Requires MetaMask with Sepolia ETH and a GitHub personal access token.
+The local deployment writes the contract addresses to the ignored file `frontend/.env.local`. Open http://localhost:3000. Connect an injected wallet such as MetaMask to the local network at `http://127.0.0.1:8545`, chain ID `31337`. Import **only a disposable Hardhat test account** from Terminal 1. Hardhat test account keys are public and must never hold real funds. Restart the web app after redeploying because the contract addresses change.
 
----
+See [SETUP.md](SETUP.md) for the short setup checklist and [USAGE.md](USAGE.md) for the demo flow.
 
-## Why GitGuild Exists
+## What the contracts do
 
-**The problem:** Open source maintainers review 10-50 PRs a week with no signal on which ones the community actually wants merged. Contributors spend weeks on PRs that get rejected. The only feedback loop is the maintainer's personal judgement.
+| Action | Contract behavior |
+| --- | --- |
+| Register a repository token | Factory charges 0.01 ETH by default. It does not verify GitHub ownership. |
+| Mint tokens | Initial batch price is 0.001 ETH per up to 1,000 tokens. Each batch increases the next price by 0.0001 ETH. |
+| Split mint payment | 30% treasury, 40% reward pool address, 10% project creator, 20% stays in the token contract. The retained portion is not an automated buyback. |
+| Redeem tokens | Burns tokens for a proportional share of ETH held by the token contract, less a 2% redemption fee. Redemption can fail if the contract has no ETH. |
+| Stake on a PR market | 5% of each ETH stake goes to the market owner; 95% enters the YES or NO pool. |
+| Resolve a PR market | Only the owner can report the outcome. The contract does not check GitHub. |
+| Claim | Winning wallets receive a proportional share of both pools. If nobody backed the winning outcome, wallets on the other side can reclaim their net stakes. |
 
-**The solution:** Let the crowd signal quality through economic incentives. A PR with high trading volume and rising token price is one the community believes in. A PR with flat or falling price signals problems before the maintainer even looks at it.
+The `ProjectCoin.resolveMarket` function records an owner supplied PR outcome and multiplier, but does not distribute a payout. The `ProjectCoin.buybackBurn` function can only burn tokens already held by that contract; it does not buy tokens from users.
 
----
+## Trust and limits
 
-## The BlockTrain Story
+This is a prototype. The contracts have **not been independently audited**. The factory owner can change its creation fee and default addresses. Each token owner can change treasury and reward pool addresses and can withdraw ETH held by the token contract, including ETH that could otherwise back redemptions. The market owner controls creation and resolution, and receives stake fees. A live Sepolia deployment has not been verified against this revision. Use local test ETH for the demo; do not use real funds.
 
-Built at **BlockTrain** — India's first moving Ethereum hackathon organized by Devfolio. 5,000+ applicants, 45 builders selected, 36 hours on a train from Bengaluru to New Delhi.
+## Project layout
 
-Limited internet, an onboard intranet with local npm packages, mentors rotating through berths. 21 projects shipped. GitGuild placed 3rd.
+- `blockchain/contracts/`: Solidity contracts.
+- `blockchain/test/`: Hardhat tests for registration, minting, fee handling, owner permissions, market positions and claims.
+- `blockchain/scripts/demo.ts`: self-contained contract demo.
+- `blockchain/scripts/deploy.ts`: local deployment for the web app.
+- `frontend/src/`: Next.js 15 app with wagmi 2 and viem 2.
 
-*Sponsored by Base, Noice, and Geode.*
+## Team and license
 
----
+GitGuild grew from the BlockSmiths team project at BlockTrain. The [original team repository](https://github.com/WhyAsh5114/blocksmiths) credits WhyAsh5114 and pradyut-das as contributors; this repository is maintained by Muneer Alam. Historical hackathon material described a third-place result, which is not used as a product performance claim here.
 
-## Documentation
-
-| Document | Purpose |
-|----------|---------|
-| [SETUP.md](./SETUP.md) | Environment setup and prerequisites |
-| [USAGE.md](./USAGE.md) | How to create and trade markets |
-| [DEPLOYMENT-CHECKLIST.md](./DEPLOYMENT-CHECKLIST.md) | Sepolia deployment steps |
-
----
-
-## License
-
-MIT © Muneer Alam
+[MIT License](LICENSE) © 2025 Muneer Alam and contributors.

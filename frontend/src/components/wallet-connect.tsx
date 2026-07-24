@@ -33,11 +33,8 @@ export function WalletConnect() {
   };
 
   const openEtherscan = () => {
-    if (address && chain) {
-      const baseUrl = chain.id === 1 
-        ? 'https://etherscan.io' 
-        : 'https://sepolia.etherscan.io';
-      window.open(`${baseUrl}/address/${address}`, '_blank');
+    if (address && chain?.id === 11155111) {
+      window.open(`https://sepolia.etherscan.io/address/${address}`, '_blank');
     }
   };
 
@@ -108,10 +105,10 @@ export function WalletConnect() {
           {copied ? 'Copied!' : 'Copy Address'}
         </DropdownMenuItem>
         
-        <DropdownMenuItem onClick={openEtherscan} className="cursor-pointer">
+        {chain?.id === 11155111 && <DropdownMenuItem onClick={openEtherscan} className="cursor-pointer">
           <ExternalLink className="w-4 h-4 mr-2" />
           View on Explorer
-        </DropdownMenuItem>
+        </DropdownMenuItem>}
         
         <DropdownMenuSeparator />
         
